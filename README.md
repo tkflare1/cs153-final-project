@@ -4,49 +4,52 @@ Stanford CS153 — Spring 2026
 
 ## Overview
 
-A from scratch implementation of speculative decoding for LLM inference based on Chen et al. 2023 and Leviathan et al. 2023. A small draft model proposes candidate token sequences. A larger target model verifies them in a single forward pass using rejection sampling. The output distribution is mathematically identical to sampling from the target model alone.
+Speculative decoding accelerates LLM inference by using a small draft model to propose tokens that a larger target model verifies in one forward pass. The algorithm itself is well established (Chen et al. 2023, Leviathan et al. 2023). This project is not a reimplementation of the paper. The contribution is an empirical study of questions the original papers did not address:
 
-## What Has Been Implemented
+1. **How does prompt domain affect acceptance rate?** Code, prose, and math have different token predictability. We measure whether structured domains like code give the draft model a systematic advantage.
 
-### Core Algorithm
-- Manual autoregressive baseline decoding (no model.generate)
-- Full speculative sampling engine: draft generation, batched target verification, token acceptance/rejection via rejection sampling, residual distribution resampling, bonus token on full acceptance
-- Seeded randomness for reproducibility
+2. **What is the optimal speculation length in practice?** The papers describe K as a hyperparameter but do not provide guidance on choosing it for real model pairings. We sweep K and show the tradeoff between acceptance rate and amortized verification cost.
 
-### Benchmarking Harness
-- Sweep over speculation lengths K = 1, 2, 4, 6, 8
-- 9 prompts across 3 domains: prose, code, math (3 each)
-- Metrics: tokens per second, acceptance rate, wall clock time, effective speedup ratio
-- Per domain summary with average acceptance rate and speedup
+3. **Where does time actually go?** We break down latency into draft generation, target verification, and acceptance overhead to understand the bottleneck at each K value.
 
-### Models Tested
-- Local CPU: distilgpt2 (82M draft) / gpt2 (124M target)
-- Colab T4 GPU: Llama 3.2 1B (draft) / Llama 3.2 3B (target), both 4 bit quantized via BitsAndBytes
+4. **How does the draft to target size ratio affect speedup?** We test multiple draft model sizes against the same target to find the ratio where speculative decoding stops being worth it.
 
-### Results
-- Best speedup: 1.30x at K=2 with 67.7% acceptance rate (Llama 1B/3B on T4)
-- Code prompts had highest acceptance rate (67%) and speedup (1.37x)
-- Prose had lowest acceptance rate (50%) due to less predictable token sequences
-- Acceptance rate decreases monotonically with K as expected
+## Current Results
 
-### Outputs
-- Results tables (K vs metrics, domain vs metrics)
-- Two matplotlib plots: speedup vs K, acceptance rate vs K
-- Full results saved to results.json
+Using Llama 3.2 1B (draft) and Llama 3.2 3B (target), both 4 bit quantized, on a T4 GPU:
+
+| K | Acceptance Rate | Tokens/sec | Speedup |
+|---|----------------|------------|---------|
+| 1 | 75.2% | 4.35 | 1.23x |
+| 2 | 67.7% | 4.58 | 1.30x |
+| 4 | 58.3% | 4.43 | 1.26x |
+| 6 | 44.0% | 3.78 | 1.07x |
+| 8 | 43.2% | 3.81 | 1.08x |
+
+| Domain | Acceptance Rate | Speedup |
+|--------|----------------|---------|
+| Code | 67.0% | 1.37x |
+| Math | 56.4% | 1.10x |
+| Prose | 49.6% | 1.09x |
+
+Key findings so far:
+- K=2 is optimal for this model pairing. Higher K wastes draft compute because the 1B model is only 3x smaller than the 3B target.
+- Code has significantly higher acceptance than prose (67% vs 50%) because token sequences are more syntactically constrained.
+- The speedup curve peaks early and declines, suggesting the optimal K depends heavily on the draft to target cost ratio.
 
 ## Planned Extensions
 
 ### KV Cache Integration
-Add KV caching to both the baseline and speculative decoding loops. Measure latency with and without caching. The nontrivial part is cache rollback on token rejection since accepted prefix caches must be preserved while rejected suffix caches are discarded.
+Add KV caching to both baseline and speculative loops. The nontrivial part is cache rollback on rejection: accepted prefix caches must be preserved while rejected suffix caches are discarded. Compare latency with and without caching.
 
-### Latency Breakdown Analysis
-Instrument the speculative decode loop to separately measure draft forward pass time, target verification time, and acceptance logic overhead. Produce stacked bar charts showing where time is spent for each K value. Measure GPU utilization during each phase.
+### Latency Breakdown
+Instrument the decode loop to separately measure draft forward pass time, target verification time, and acceptance overhead. Produce stacked bar charts showing where time goes at each K value. Measure GPU utilization during each phase.
 
 ### Token Level Visualization
-Build a visualization that shows each speculative round step by step. Color accepted tokens green and rejected tokens red. Display the probability ratios (p_target / p_draft) at each position. Show when residual resampling occurs and what the bonus token is.
+Visualize each speculative round step by step. Show accepted tokens, rejected tokens, probability ratios at each position, and residual resampling events. Makes the algorithm tangible beyond aggregate metrics.
 
 ### Draft Model Size Sweep
-Test multiple draft model sizes against the same target to find the optimal draft to target size ratio. For example Llama 3.2 1B and Llama 3.2 3B as drafts against a larger target. Produce tradeoff curves of speedup vs draft model size.
+Test multiple draft sizes against the same target to find the optimal draft to target size ratio. Produce tradeoff curves showing when speculative decoding stops being worth it.
 
 ## Project Structure
 
