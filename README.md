@@ -6,13 +6,13 @@ Stanford CS153 — Spring 2026
 
 Speculative decoding accelerates LLM inference by using a small draft model to propose tokens that a larger target model verifies in one forward pass. The algorithm itself is well established (Chen et al. 2023, Leviathan et al. 2023). This project is not a reimplementation of the paper. The contribution is an empirical study of questions the original papers did not address:
 
-1. **How does prompt domain affect acceptance rate?** Code, prose, and math have different token predictability. We measure whether structured domains like code give the draft model a systematic advantage.
+1. **How does prompt domain affect acceptance rate?** Code, prose, and math have different token predictability. I measure whether structured domains like code give the draft model a systematic advantage.
 
-2. **What is the optimal speculation length in practice?** The papers describe K as a hyperparameter but do not provide guidance on choosing it for real model pairings. We sweep K and show the tradeoff between acceptance rate and amortized verification cost.
+2. **What is the optimal speculation length in practice?** The papers describe K as a hyperparameter but do not provide guidance on choosing it for real model pairings. I sweep K and show the tradeoff between acceptance rate and amortized verification cost.
 
-3. **Where does time actually go?** We break down latency into draft generation, target verification, and acceptance overhead to understand the bottleneck at each K value.
+3. **Where does time actually go?** I break down latency into draft generation, target verification, and acceptance overhead to understand the bottleneck at each K value.
 
-4. **How does the draft to target size ratio affect speedup?** We test multiple draft model sizes against the same target to find the ratio where speculative decoding stops being worth it.
+4. **How does the draft to target size ratio affect speedup?** I test multiple draft model sizes against the same target to find the ratio where speculative decoding stops being worth it.
 
 ## Current Results
 
