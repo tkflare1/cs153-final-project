@@ -109,8 +109,13 @@ def speculative_decode(
             p_target = target_probs_i[draft_token].item()
             p_draft = draft_probs_i[draft_token].item()
 
+            # Draft and target may pad their logit layer to different widths even
+            # when they share a tokenizer (e.g. the Qwen2.5 family). Align to the
+            # common vocab for the residual; this is a no-op when widths match.
+            _v = min(target_probs_i.shape[0], draft_probs_i.shape[0])
+
             if p_draft == 0:
-                residual = torch.clamp(target_probs_i - draft_probs_i, min=0)
+                residual = torch.clamp(target_probs_i[:_v] - draft_probs_i[:_v], min=0)
                 residual = residual / (residual.sum() + 1e-10)
                 resampled = sample_from_distribution(residual)
                 generated = torch.cat(
@@ -130,7 +135,7 @@ def speculative_decode(
                 tokens_generated += 1
                 num_accepted += 1
             else:
-                residual = torch.clamp(target_probs_i - draft_probs_i, min=0)
+                residual = torch.clamp(target_probs_i[:_v] - draft_probs_i[:_v], min=0)
                 residual = residual / (residual.sum() + 1e-10)
                 resampled = sample_from_distribution(residual)
                 generated = torch.cat(
@@ -157,16 +162,14 @@ def speculative_decode(
 # Standalone verification
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
+    from models import load_models
+
     print("Loading models for standalone verification...")
-    tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
-    tokenizer.pad_token = tokenizer.eos_token
-    draft_model = AutoModelForCausalLM.from_pretrained("distilgpt2")
-    target_model = AutoModelForCausalLM.from_pretrained("gpt2")
-    draft_model.eval()
-    target_model.eval()
+    draft_model, target_model, tokenizer = load_models()
 
     prompt = "The quick brown fox"
     input_ids = tokenizer.encode(prompt, return_tensors="pt")
+    input_ids = input_ids.to(next(draft_model.parameters()).device)
 
     print(f"Prompt: {prompt}")
     print("Running speculative decoding with K=4, max_new_tokens=20 ...")

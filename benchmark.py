@@ -10,12 +10,11 @@ import time
 import torch
 import numpy as np
 from tqdm import tqdm
-from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from speculative_decode import speculative_decode
 from baseline import baseline_autoregressive
+from config import SEED, K_VALUES, MAX_NEW_TOKENS
 
-SEED = 42
 torch.manual_seed(SEED)
 np.random.seed(SEED)
 
@@ -27,7 +26,6 @@ def _model_device(model):
     except StopIteration:
         return torch.device("cpu")
 
-# ---- Prompt corpus: 3 prompts x 3 domains ----
 PROMPTS = {
     "prose": [
         "Once upon a time in a distant kingdom, there lived a",
@@ -45,9 +43,6 @@ PROMPTS = {
         "Using the binomial theorem, expand (x + y)^4 to get",
     ],
 }
-
-K_VALUES = [1, 2, 4, 6, 8]
-MAX_NEW_TOKENS = 50
 
 
 def run_baseline_benchmark(model, tokenizer, prompts_dict):
@@ -138,7 +133,6 @@ def run_full_benchmark(draft_model, target_model, tokenizer, prompts_dict=None, 
         )
         all_spec_results.extend(spec_results)
 
-    # -- Build K summary table --
     k_summary = []
     for K in k_values:
         k_results = [r for r in all_spec_results if r["K"] == K]
@@ -154,7 +148,6 @@ def run_full_benchmark(draft_model, target_model, tokenizer, prompts_dict=None, 
             "avg_elapsed": round(avg_elapsed, 2),
         })
 
-    # -- Build domain summary table --
     domains = list(prompts_dict.keys())
     domain_summary = []
     for domain in domains:
@@ -203,19 +196,11 @@ def print_results_tables(results):
               f"{row['avg_tokens_per_sec']:>10.2f}  {row['speedup']:>10.4f}")
 
 
-# ---------------------------------------------------------------------------
-# Standalone verification
-# ---------------------------------------------------------------------------
 if __name__ == "__main__":
+    from models import load_models
     print("Loading models for benchmark verification...")
-    tokenizer = AutoTokenizer.from_pretrained("distilgpt2")
-    tokenizer.pad_token = tokenizer.eos_token
-    draft_model = AutoModelForCausalLM.from_pretrained("distilgpt2")
-    target_model = AutoModelForCausalLM.from_pretrained("gpt2")
-    draft_model.eval()
-    target_model.eval()
+    draft_model, target_model, tokenizer = load_models()
 
-    # Quick verification with a single K value and reduced prompts
     test_prompts = {"prose": [PROMPTS["prose"][0]]}
     results = run_full_benchmark(
         draft_model, target_model, tokenizer,

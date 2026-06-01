@@ -1,7 +1,7 @@
 """
 Main Entry Point — Speculative Decoding Research Project
 Runs the full benchmark pipeline end to end: loads models, sweeps K values
-across all prompt domains, saves results.json, and generates plots.
+across all prompt domains, saves results.json, and generates all plots.
 
 Stanford CS153 — Speculative Decoding
 """
@@ -9,31 +9,15 @@ Stanford CS153 — Speculative Decoding
 import json
 import torch
 import numpy as np
-from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# ============================================================================
-# MODEL CONFIGURATION — flip USE_COLAB to True when running on Colab with GPU
-# ============================================================================
-USE_COLAB = False
-
-if USE_COLAB:
-    # --- Google Colab (T4 GPU, Llama 3.2 with 4-bit quantization) ---
-    from transformers import BitsAndBytesConfig
-    DRAFT_MODEL_NAME = "meta-llama/Llama-3.2-1B"
-    TARGET_MODEL_NAME = "meta-llama/Llama-3.2-3B"
-    QUANTIZATION_CONFIG = BitsAndBytesConfig(load_in_4bit=True)
-else:
-    # --- Local development (CPU, small models) ---
-    DRAFT_MODEL_NAME = "distilgpt2"       # 82M params
-    TARGET_MODEL_NAME = "gpt2"            # 124M params
-    QUANTIZATION_CONFIG = None
-# ============================================================================
-
-from benchmark import run_full_benchmark, print_results_tables, PROMPTS, K_VALUES
+from config import (
+    DRAFT_MODEL_NAME, TARGET_MODEL_NAME, USE_COLAB,
+    SEED, K_VALUES, MAX_NEW_TOKENS, RESULTS_PATH,
+)
+from models import load_models
+from benchmark import run_full_benchmark, print_results_tables, PROMPTS
 from plot import generate_all_plots
-
-SEED = 42
-RESULTS_PATH = "results.json"
+from visualize import run_latency_sweep, plot_latency_breakdown, plot_latency_percentage, generate_token_html
 
 
 def main():
@@ -51,26 +35,7 @@ def main():
 
     # ---- Load models ----
     print("\nLoading tokenizer and models...")
-    tokenizer = AutoTokenizer.from_pretrained(DRAFT_MODEL_NAME)
-    tokenizer.pad_token = tokenizer.eos_token
-
-    if USE_COLAB:
-        draft_model = AutoModelForCausalLM.from_pretrained(
-            DRAFT_MODEL_NAME,
-            quantization_config=QUANTIZATION_CONFIG,
-            device_map="auto",
-        )
-        target_model = AutoModelForCausalLM.from_pretrained(
-            TARGET_MODEL_NAME,
-            quantization_config=QUANTIZATION_CONFIG,
-            device_map="auto",
-        )
-    else:
-        draft_model = AutoModelForCausalLM.from_pretrained(DRAFT_MODEL_NAME)
-        target_model = AutoModelForCausalLM.from_pretrained(TARGET_MODEL_NAME)
-
-    draft_model.eval()
-    target_model.eval()
+    draft_model, target_model, tokenizer = load_models()
     print("Models loaded.\n")
 
     # ---- Run benchmark ----
@@ -84,9 +49,33 @@ def main():
         json.dump(results, f, indent=2)
     print(f"\nResults saved to {RESULTS_PATH}")
 
-    # ---- Generate plots ----
+    # ---- Generate speedup and acceptance rate plots ----
     print("\nGenerating plots...")
     generate_all_plots(RESULTS_PATH)
+
+    # ---- Latency breakdown and token visualization ----
+    print("\n" + "=" * 60)
+    print("  Running Latency Breakdown & Token Visualization")
+    print("=" * 60)
+    latency_prompt = PROMPTS["prose"][0]
+    latency_by_k, all_traces = run_latency_sweep(
+        draft_model, target_model, tokenizer, latency_prompt, K_VALUES,
+        max_new_tokens=MAX_NEW_TOKENS,
+    )
+
+    plot_latency_breakdown(latency_by_k)
+    plot_latency_percentage(latency_by_k)
+
+    with open("latency_breakdown.json", "w") as f:
+        json.dump(latency_by_k, f, indent=2)
+    print("Saved: latency_breakdown.json")
+
+    k4_trace = all_traces.get(4)
+    if k4_trace:
+        generate_token_html(
+            k4_trace["trace"], latency_prompt, k4_trace["output_text"],
+            K=4, acceptance_rate=k4_trace["acceptance_rate"],
+        )
 
     # ---- Sample comparison printout (K=4) ----
     print("\n" + "=" * 60)

@@ -1,0 +1,13 @@
+{
+  "draft": "meta-llama/Llama-3.2-1B",
+  "target": "meta-llama/Llama-3.2-3B",
+  "K": 4,
+  "max_new_tokens": 50,
+  "lossless": true,
+  "baseline_no_cache_s": 0.9715,
+  "baseline_kv_s": 0.8781,
+  "baseline_kv_speedup": 1.106,
+  "speculative_no_cache_s": 0.8893,
+  "speculative_kv_s": 0.8854,
+  "speculative_kv_speedup": 1.004
+}

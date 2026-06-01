@@ -52,7 +52,7 @@ Both models were run on a Google Colab T4 GPU (16 GB VRAM). The 4-bit quantizati
 
 ### 3.1 Prompts
 
-We tested on 9 prompts across 3 domains (3 prompts each):
+I tested on 9 prompts across 3 domains (3 prompts each):
 
 - **Prose**: Creative/narrative writing (e.g., "Once upon a time in a distant kingdom...")
 - **Code**: Python programming (e.g., "def fibonacci(n):...")
@@ -76,29 +76,103 @@ We tested on 9 prompts across 3 domains (3 prompts each):
 
 ### 4.1 Baseline Performance
 
-The target model (Llama 3.2 3B, 4-bit) achieved an average baseline throughput of **3.53 tokens/sec** across all 9 prompts on the T4 GPU.
+The target model (Llama 3.2 3B, 4-bit) achieved an average baseline throughput of **3.71 tokens/sec** across all 9 prompts on the T4 GPU.
 
 ### 4.2 Speculation Length (K) Sweep
 
 | K | Acceptance Rate | Tokens/sec | Speedup | Avg Time (s) |
 |---|----------------|------------|---------|---------------|
-| 1 | 0.7519 | 4.35 | 1.23x | 11.69 |
-| **2** | **0.6773** | **4.58** | **1.30x** | **11.13** |
-| 4 | 0.5828 | 4.43 | 1.26x | 11.80 |
-| 6 | 0.4400 | 3.78 | 1.07x | 14.07 |
-| 8 | 0.4318 | 3.81 | 1.08x | 13.94 |
+| 1 | 0.7519 | 4.54 | 1.22x | 11.20 |
+| **2** | **0.6773** | **4.86** | **1.31x** | **10.48** |
+| 4 | 0.5828 | 4.78 | 1.29x | 10.88 |
+| 6 | 0.4400 | 4.01 | 1.08x | 13.28 |
+| 8 | 0.4318 | 4.02 | 1.08x | 13.21 |
 
-**K=2 is the optimal speculation length**, achieving 1.30x speedup with a 67.7% acceptance rate.
+**K=2 is the optimal speculation length**, achieving 1.31x speedup with a 67.7% acceptance rate.
 
 ### 4.3 Domain Analysis
 
 | Domain | Acceptance Rate | Avg Tokens/sec | Speedup |
 |--------|----------------|----------------|---------|
-| Prose | 0.4959 | 3.86 | 1.09x |
-| **Code** | **0.6701** | **4.85** | **1.37x** |
-| Math | 0.5643 | 3.87 | 1.10x |
+| Prose | 0.4959 | 4.06 | 1.09x |
+| **Code** | **0.6701** | **5.15** | **1.39x** |
+| Math | 0.5643 | 4.11 | 1.11x |
 
-**Code prompts yield the highest speedup (1.37x)** with a 67% acceptance rate.
+**Code prompts yield the highest speedup (1.39x)** with a 67% acceptance rate.
+
+### 4.4 Latency Breakdown by Phase
+
+I instrumented the speculative decode loop to separately measure time spent in each phase. The following table shows absolute wall-clock time for each phase on the prose prompt ("Once upon a time..."):
+
+| K | Draft (s) | Verify (s) | Accept (s) | Total (s) | Draft % | Verify % |
+|---|-----------|------------|------------|-----------|---------|----------|
+| 1 | 3.03 | 4.63 | 3.48 | 11.13 | 27% | 42% |
+| 2 | 5.13 | 4.06 | 3.06 | 12.25 | 42% | 33% |
+| 4 | 7.32 | 2.94 | 2.23 | 12.49 | 59% | 24% |
+| 6 | 8.62 | 2.88 | 1.59 | 13.09 | 66% | 22% |
+| 8 | 10.49 | 1.90 | 1.45 | 13.84 | 76% | 14% |
+
+At K=1, verification (the target model forward pass) dominates at 42% of total time. As K increases, draft generation grows linearly — each round runs K sequential draft passes — while verification time shrinks because fewer rounds are needed. By K=8, drafting consumes 76% of wall-clock time, and most of those draft tokens are rejected (only 41% acceptance). This directly explains the speedup peak: the crossover point where drafting becomes the dominant cost falls between K=2 and K=4, precisely where speedup is maximized.
+
+### 4.5 Token-Level Trace (K=4)
+
+An interactive visualization (`colab_results/token_trace.html`) shows the round-by-round accept/reject decisions for the K=4 prose generation. Key observations:
+
+- **Full acceptance rounds** (4/4 tokens accepted) occurred on predictable phrases: "of the", "He was a", "for he was", "the tongue and the sword". These are syntactically constrained continuations where the 1B draft model matches the 3B target.
+- **Immediate rejection rounds** (0/1 accepted) occurred when the draft model chose a plausible but wrong word (e.g., "whom" vs "the", "sword" vs "line"). The target model rejected at position 0 and resampled.
+- **Partial acceptance rounds** (e.g., 2/3) show the cascade effect: once a rejection occurs, all subsequent tokens in the draft are discarded regardless of quality.
+- **Probability ratios** beside each token quantify the mismatch: ratios near 1.0 indicate strong agreement (e.g., "prince" at 1.00), while low ratios indicate divergence (e.g., "law" at 0.05).
+
+### 4.6 Full-Precision H100 Run (Cross-Regime Comparison)
+
+The results above use 4-bit quantization on a T4. I re-ran the identical benchmark in **full precision (no quantization)** on a Stanford H100 to test how the conclusions hold in a different hardware/precision regime. Baseline throughput rose to **49.21 tokens/sec** (vs 3.71 on the 4-bit T4).
+
+| K | Acceptance Rate | Tokens/sec | Speedup |
+|---|----------------|------------|---------|
+| **1** | **0.848** | **57.54** | **1.17x** |
+| 2 | 0.754 | 56.99 | 1.16x |
+| 4 | 0.701 | 56.35 | 1.15x |
+| 6 | 0.600 | 50.75 | 1.03x |
+| 8 | 0.531 | 46.01 | 0.94x |
+
+| Domain | Acceptance Rate | Tokens/sec | Speedup |
+|--------|----------------|------------|---------|
+| **Code** | **0.772** | **58.57** | **1.19x** |
+| Prose | 0.654 | 51.85 | 1.05x |
+| Math | 0.633 | 50.16 | 1.02x |
+
+Two things change and one stays the same:
+
+- **The optimal K drops to 1** (from 2 on the T4), and the peak speedup is smaller (1.17x vs 1.31x). K=8 is now *slower than baseline* (0.94x). In full precision on a fast GPU, the target forward pass is cheap and the fixed per-call overhead of drafting dominates sooner, so speculating far ahead is counterproductive.
+- **Acceptance rates are higher across the board** (e.g., 84.8% at K=1 vs 75.2% on the T4). 4-bit quantization perturbs the draft and target distributions unequally, lowering agreement; full precision restores it.
+- **Code is still the most favorable domain** in both regimes (1.19x here, 1.39x on the T4), confirming the domain finding is robust to precision.
+
+The key takeaway is that the *optimal speculation length is hardware- and precision-dependent*, not an intrinsic property of the model pair. This is exactly the kind of practical guidance the original papers leave open.
+
+### 4.7 Extension: KV-Cache Integration
+
+The baseline and speculative loops in Sections 2.1–2.2 recompute attention over the full sequence every step. I added KV-cached variants of both (`kv_cache.py`). The interesting part is **cache rollback on rejection**: the target verifies K speculative tokens in one pass and extends its cache by K, but only the accepted prefix is committed. Worse, the draft and target caches advance at *different* rates — the draft only forwards K−1 of its K proposals (the last proposed token's logits are never needed by the draft itself). I therefore track the two cache lengths separately and crop each back to exactly the positions it processed, feeding the freshly resampled/bonus token (which neither model has seen) as the next round's input.
+
+**Correctness.** Because the cache changes only *how* logits are computed, not their values, a cached run with a fixed seed must reproduce the non-cached output exactly. `kv_compare.py` checks this token-for-token and confirms **losslessness (PASS)** for both decoders on both gpt2 (CPU) and Llama 3.2 (H100).
+
+| Setting | Baseline KV speedup | Speculative KV speedup | Lossless |
+|---------|--------------------|------------------------|----------|
+| gpt2 / distilgpt2, CPU | 2.08x | 1.75x | PASS |
+| Llama 3.2 1B/3B, H100 | 1.11x | 1.00x | PASS |
+
+The cache helps dramatically on CPU, where recomputing the prefix is relatively expensive, but only modestly on the H100 at 50 tokens — the recomputed prefix is short, and speculative decoding already issues few forward passes, so it has the least to gain. The benefit would grow with longer generations.
+
+### 4.8 Extension: Draft Model Size Sweep
+
+To find the draft-to-target size ratio where speculation stops paying off, I swept draft size against a fixed target (`draft_sweep.py`). Since speculative decoding requires a shared tokenizer, I used the **Qwen2.5 family** (0.5B / 1.5B / 3B drafts against a 7B target — all share one tokenizer), at K=4 on the H100. Baseline (Qwen2.5-7B): 42.4 tok/s.
+
+| Draft | Draft:Target ratio | Acceptance Rate | Speedup |
+|-------|-------------------|----------------|---------|
+| 0.5B | 14:1 | 0.642 | 0.94x |
+| 1.5B | 4.7:1 | 0.591 | 0.80x |
+| **3B** | **2.3:1** | **0.848** | **1.17x** |
+
+The result is counter-intuitive: **the largest draft wins**, not the smallest. The naive expectation is that a tiny draft is "nearly free" and should maximize speedup, but only the 3B draft beats baseline. Two effects combine: (1) the 3B draft's acceptance rate is far higher (85% vs 64%), and (2) at batch size 1 on an H100, per-token latency is dominated by fixed kernel-launch and memory overhead rather than FLOPs, so a 0.5B model is *not* meaningfully cheaper per token than a 3B one. The cheap draft therefore saves almost nothing while accepting much less. The optimal ratio is regime-dependent: in a FLOP-bound setting (huge target, large batch) the tiny draft would win, but in this latency-bound batch-1 setting the larger, more accurate draft is better.
 
 ## 5. Analysis
 
@@ -115,7 +189,7 @@ Speedup is determined by the balance of two opposing forces:
 
 At K=1, each round costs 1 draft pass + 1 target pass, and we accept ~75% of proposals. The speedup is 1.23x.
 
-At K=2, each round costs 2 draft passes + 1 target pass. We accept ~68% per token, meaning on average we get ~1.36 tokens per target call (plus the bonus token when both accepted). This is the sweet spot where the extra draft call pays for itself.
+At K=2, each round costs 2 draft passes + 1 target pass. The system accepts ~68% per token, meaning on average ~1.36 tokens per target call (plus the bonus token when both are accepted). This is the sweet spot where the extra draft call pays for itself.
 
 At K=4+, the draft model forward passes start to dominate the cost. The Llama 1B model is only ~3x smaller than the 3B target, so each draft forward pass is a significant fraction (~1/3) of a target pass. By K=6, we're spending 6 draft passes (≈ 2 target-equivalent passes) to get only ~2.2 accepted tokens per round, which is worse than K=2.
 
@@ -134,15 +208,15 @@ Code prompts achieved 67% acceptance vs. 50% for prose and 56% for math. This re
 ### 5.4 Cost-Benefit Perspective
 
 On the T4 with Llama 1B/3B:
-- Baseline: 3.53 tok/sec
-- Best speculative: 4.58 tok/sec (K=2)
-- **Net speedup: 1.30x (30% faster)**
+- Baseline: 3.71 tok/sec
+- Best speculative: 4.86 tok/sec (K=2)
+- **Net speedup: 1.31x (31% faster)**
 
-This translates to generating 50 tokens in **11.1s** instead of **14.2s** — a saving of ~3 seconds per generation. For batch workloads processing thousands of prompts, this compounds to significant wall-clock savings.
+This translates to generating 50 tokens in **10.5s** instead of **13.5s** — a saving of ~3 seconds per generation. For batch workloads processing thousands of prompts, this compounds to significant wall-clock savings.
 
 ### 5.5 Comparison: GPU vs CPU Results
 
-We also ran the same benchmark locally on CPU with smaller models (distilgpt2 82M / gpt2 124M):
+I also ran the same benchmark locally on CPU with smaller models (distilgpt2 82M / gpt2 124M):
 
 | Setting | Best K | Best Speedup | Best Acceptance Rate |
 |---------|--------|-------------|---------------------|
@@ -155,23 +229,45 @@ On CPU, speculative decoding barely helps because:
 
 On GPU, the speedup is substantially better because the T4's parallelism makes the single-pass verification of K tokens nearly as fast as a single-token forward pass, amplifying the benefit of each accepted token.
 
+### 5.6 Latency Breakdown: Explaining the Mechanism
+
+The instrumented latency data (Section 4.4) provides the mechanistic explanation for the speedup curve:
+
+1. **Draft cost is linear in K.** Each round runs K sequential autoregressive passes through the 1B model. Going from K=1 (3.03s draft) to K=8 (10.49s draft) is a ~3.5x increase, consistent with the per-token draft cost being roughly constant.
+
+2. **Verification cost is inversely proportional to K.** Fewer rounds are needed at higher K, and each round still requires exactly one target forward pass. Verify time drops from 4.63s (K=1) to 1.90s (K=8).
+
+3. **The crossover determines the optimal K.** At K=2, draft and verification are roughly balanced (42% vs 33%). Beyond K=4, drafting dominates — and since most drafted tokens are rejected, this time is largely wasted.
+
+This breakdown is not present in the original Chen et al. paper, which analyzes speculative decoding theoretically but does not report empirical phase-level timing.
+
 ## 6. Limitations and Future Work
 
-1. **KV-cache optimization**: Our implementation recomputes attention over the full sequence at each step. A production implementation would use KV-caching to avoid redundant computation, which would increase both baseline and speculative throughput but likely improve speculative decoding's relative advantage.
+Two items originally listed as future work were implemented and are reported above: **KV-cache integration** (Section 4.7, verified lossless) and the **draft model size sweep** (Section 4.8). The draft-size sweep also partially addresses the "larger model gaps" question — though it revealed that at batch-1 on a fast GPU the relationship is dominated by latency overhead rather than the FLOP ratio. Remaining directions:
 
-2. **Adaptive K**: Rather than a fixed K, one could dynamically adjust the speculation length based on the running acceptance rate — speculate more aggressively when the draft model is performing well and pull back when rejections are frequent.
+1. **Adaptive K**: Rather than a fixed K, one could dynamically adjust the speculation length based on the running acceptance rate — speculate more aggressively when the draft model is performing well and pull back when rejections are frequent. The cross-regime result (optimal K=1 on H100 vs K=2 on T4) suggests this should also adapt to hardware.
 
-3. **Larger model gaps**: The speedup benefits would be more pronounced with a greater size gap between draft and target (e.g., 1B drafting for 70B). Our 1B/3B pair has a modest 3x size ratio, limiting the achievable speedup.
+2. **Much larger size gaps in a FLOP-bound setting**: The size sweep here was latency-bound at batch 1. With a very large target (e.g., 70B) or large batches, draft FLOPs would matter more and a tiny draft could win — the opposite of what was observed here.
 
-4. **Tree-structured speculation**: Instead of a single draft sequence, the draft model could explore a tree of possible continuations, allowing the target model to verify multiple alternative paths in one pass (Medusa, SpecInfer).
+3. **Tree-structured speculation**: Instead of a single draft sequence, the draft model could explore a tree of possible continuations, allowing the target model to verify multiple alternative paths in one pass (Medusa, SpecInfer).
 
-5. **Batch inference**: Our benchmark tests single-sequence generation. In high-throughput serving scenarios, the interplay between speculative decoding and continuous batching introduces additional trade-offs.
+4. **Batch inference**: The benchmark tests single-sequence generation. In high-throughput serving scenarios, the interplay between speculative decoding and continuous batching introduces additional trade-offs — and would shift the size-sweep conclusion toward FLOP-bound behavior.
 
 ## 7. Conclusion
 
-We implemented and benchmarked speculative decoding using Llama 3.2 1B (draft) and 3B (target) on a T4 GPU. The optimal configuration (K=2) achieved a **1.30x speedup** over standard autoregressive decoding with a **67.7% acceptance rate**, while producing output from an identical distribution. Code generation benefited most (1.37x speedup, 67% acceptance), consistent with the higher predictability of structured programming text.
+I implemented and benchmarked speculative decoding using Llama 3.2 1B (draft) and 3B (target) on a T4 GPU. The optimal configuration (K=2) achieved a **1.31x speedup** over standard autoregressive decoding with a **67.7% acceptance rate**, while producing output from an identical distribution. Code generation benefited most (1.39x speedup, 67% acceptance), consistent with the higher predictability of structured programming text.
 
-The results confirm the theoretical prediction: speculative decoding provides a genuine free lunch — faster inference with no quality degradation — when the draft-to-target cost ratio is favorable and the draft model is a reasonable approximation of the target.
+I additionally validated the same pipeline in **full precision on an H100**, where the optimal K shifts to 1 and peak speedup is 1.17x — showing that the best speculation length is hardware- and precision-dependent rather than intrinsic to the model pair.
+
+Beyond reproducing the core algorithm, this project contributes:
+- **Per-domain analysis** showing that code, math, and prose have meaningfully different acceptance rates and speedups — a dimension not explored in the original papers, and one that holds across both the T4 and H100 regimes.
+- **Instrumented latency breakdown** revealing that draft generation becomes the bottleneck at higher K, and that the crossover between draft and verification cost precisely explains the optimal K.
+- **Token-level visualization** making the accept/reject dynamics visible at the individual token level, including probability ratios and resampling events.
+- **A cross-regime study** (4-bit T4 vs full-precision H100) demonstrating that the optimal speculation length and achievable speedup depend on hardware and precision.
+- **A lossless KV-cache implementation** with non-trivial dual-cache rollback on rejection, verified token-for-token against the non-cached decoders.
+- **A draft-size sweep** showing the counter-intuitive result that at batch-1 on a fast GPU the *larger*, higher-acceptance draft maximizes speedup, because small-model latency is overhead-bound rather than FLOP-bound.
+
+The results confirm the theoretical prediction — speculative decoding is a genuine free lunch when the draft-to-target cost ratio is favorable — but also sharpen it: whether that ratio is favorable depends as much on the hardware, precision, and batch regime as on the model sizes themselves.
 
 ## References
 

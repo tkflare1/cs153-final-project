@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Speculative Decoding Token Trace</title>
+
+    <style>
+        body { font-family: 'Segoe UI', system-ui, sans-serif; max-width: 900px;
+               margin: 40px auto; padding: 0 20px; background: #fafafa; color: #1a1a1a; }
+        h1 { font-size: 22px; border-bottom: 2px solid #e5e5e5; padding-bottom: 10px; }
+        h2 { font-size: 16px; color: #555; margin-top: 30px; }
+        .meta { background: #f0f0f0; padding: 12px 16px; border-radius: 8px;
+                font-size: 14px; margin-bottom: 20px; }
+        .round { background: white; border: 1px solid #e0e0e0; border-radius: 8px;
+                 padding: 14px 18px; margin-bottom: 12px; }
+        .round-header { font-weight: 600; font-size: 14px; color: #444; margin-bottom: 8px; }
+        .token { display: inline-block; padding: 3px 6px; margin: 2px; border-radius: 4px;
+                 font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; }
+        .accepted { background: #dcfce7; border: 1px solid #86efac; color: #166534; }
+        .rejected { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b;
+                    text-decoration: line-through; }
+        .resampled { background: #fef3c7; border: 1px solid #fcd34d; color: #92400e; }
+        .bonus { background: #dbeafe; border: 1px solid #93c5fd; color: #1e40af; }
+        .prob { font-size: 11px; color: #888; margin-left: 2px; }
+        .legend { display: flex; gap: 16px; margin-bottom: 16px; font-size: 13px; }
+        .legend span { padding: 2px 8px; border-radius: 4px; }
+        .arrow { color: #999; margin: 0 2px; }
+    </style>
+    </head><body>
+<h1>Speculative Decoding: Token-Level Trace</h1>
+<div class="meta">
+    <strong>Prompt:</strong> Once upon a time in a distant kingdom, there lived a<br>
+    <strong>K:</strong> 4 &nbsp;|&nbsp;
+    <strong>Acceptance Rate:</strong> 45.2% &nbsp;|&nbsp;
+    <strong>Rounds:</strong> 11
+</div>
+
+    <div class="legend">
+        <span class="token accepted">Accepted</span>
+        <span class="token rejected">Rejected</span>
+        <span class="token resampled">Resampled</span>
+        <span class="token bonus">Bonus</span>
+    </div>
+    
+<h2>Generation Rounds</h2>
+
+        <div class="round">
+            <div class="round-header">Round 1
+                &mdash; 0/1 accepted</div>
+            <span class="token rejected"> solid<span class="prob"> 0.24</span></span><span class="arrow">&rarr;</span><span class="token resampled"> furnace</span> 
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 2
+                &mdash; 0/1 accepted</div>
+            <span class="token rejected"> at<span class="prob"> 0.54</span></span><span class="arrow">&rarr;</span><span class="token resampled">,</span> 
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 3
+                &mdash; 0/1 accepted</div>
+            <span class="token rejected"> failed<span class="prob"> 0.14</span></span><span class="arrow">&rarr;</span><span class="token resampled"> like</span> 
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 4
+                &mdash; 4/4 accepted</div>
+            <span class="token accepted"> a<span class="prob"> 0.83</span></span> <span class="token accepted"> factory<span class="prob"> 0.28</span></span> <span class="token accepted">,<span class="prob"> 0.99</span></span> <span class="token accepted"> we<span class="prob"> 0.51</span></span> <span class="token bonus">pt (bonus)</span>
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 5
+                &mdash; 2/3 accepted</div>
+            <span class="token accepted">.<span class="prob"> 0.99</span></span> <span class="token accepted"> Then<span class="prob"> 0.74</span></span> <span class="token rejected">,<span class="prob"> 0.63</span></span><span class="arrow">&rarr;</span><span class="token resampled">).&quot;</span> 
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 6
+                &mdash; 2/3 accepted</div>
+            <span class="token accepted">
+<span class="prob"> 0.81</span></span> <span class="token accepted">
+<span class="prob"> 1.00</span></span> <span class="token rejected">
+<span class="prob"> 0.00</span></span><span class="arrow">&rarr;</span><span class="token resampled">And</span> 
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 7
+                &mdash; 4/4 accepted</div>
+            <span class="token accepted"> yet<span class="prob"> 0.38</span></span> <span class="token accepted"> American<span class="prob"> 0.91</span></span> <span class="token accepted"> politicians<span class="prob"> 0.57</span></span> <span class="token accepted"> keep<span class="prob"> 0.75</span></span> <span class="token bonus"> talking (bonus)</span>
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 8
+                &mdash; 3/4 accepted</div>
+            <span class="token accepted"> about<span class="prob"> 1.00</span></span> <span class="token accepted"> farming<span class="prob"> 0.92</span></span> <span class="token accepted"> made<span class="prob"> 1.00</span></span> <span class="token rejected"> me<span class="prob"> 0.04</span></span><span class="arrow">&rarr;</span><span class="token resampled"> in</span> 
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 9
+                &mdash; 1/2 accepted</div>
+            <span class="token accepted"> the<span class="prob"> 0.72</span></span> <span class="token rejected"> c<span class="prob"> 0.20</span></span><span class="arrow">&rarr;</span><span class="token resampled"> North</span> 
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 10
+                &mdash; 2/3 accepted</div>
+            <span class="token accepted">,<span class="prob"> 1.00</span></span> <span class="token accepted"> sm<span class="prob"> 1.00</span></span> <span class="token rejected">og<span class="prob"> 0.11</span></span><span class="arrow">&rarr;</span><span class="token resampled">el</span> 
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 11
+                &mdash; 1/2 accepted</div>
+            <span class="token accepted">ting<span class="prob"> 1.00</span></span> <span class="token rejected"> consumers<span class="prob"> 0.20</span></span><span class="arrow">&rarr;</span><span class="token resampled"> American</span> 
+        </div>
+        
+<h2>Full Output</h2>
+<div class="round" style="white-space:pre-wrap; font-family:monospace; font-size:13px;">
+Once upon a time in a distant kingdom, there lived a furnace, like a factory, wept. Then).&quot;
+
+And yet American politicians keep talking about farming made in the North, smelting American</div>
+</body></html>

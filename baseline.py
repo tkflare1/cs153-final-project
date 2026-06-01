@@ -62,14 +62,15 @@ def baseline_autoregressive(
 # Standalone verification
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
+    from models import load_models
+
     print("Loading target model for baseline verification...")
-    tokenizer = AutoTokenizer.from_pretrained("gpt2")
-    tokenizer.pad_token = tokenizer.eos_token
-    model = AutoModelForCausalLM.from_pretrained("gpt2")
-    model.eval()
+    _, target_model, tokenizer = load_models()
+    model = target_model
 
     prompt = "The quick brown fox"
     input_ids = tokenizer.encode(prompt, return_tensors="pt")
+    input_ids = input_ids.to(next(model.parameters()).device)
 
     print(f"Prompt: {prompt}")
     print("Running baseline autoregressive decoding, max_new_tokens=20 ...")

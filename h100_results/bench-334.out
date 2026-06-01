@@ -1,0 +1,100 @@
+pyxis: importing docker image: nvcr.io#nvidia/pytorch:24.12-py3
+pyxis: imported docker image: nvcr.io#nvidia/pytorch:24.12-py3
+DEPRECATION: Loading egg at /usr/local/lib/python3.12/dist-packages/dill-0.3.9-py3.12.egg is deprecated. pip 25.1 will enforce this behaviour change. A possible replacement is to use pip for package installation. Discussion can be found at https://github.com/pypa/pip/issues/12330
+DEPRECATION: Loading egg at /usr/local/lib/python3.12/dist-packages/igraph-0.11.8-py3.12-linux-x86_64.egg is deprecated. pip 25.1 will enforce this behaviour change. A possible replacement is to use pip for package installation. Discussion can be found at https://github.com/pypa/pip/issues/12330
+DEPRECATION: Loading egg at /usr/local/lib/python3.12/dist-packages/lightning_thunder-0.2.0.dev0-py3.12.egg is deprecated. pip 25.1 will enforce this behaviour change. A possible replacement is to use pip for package installation. Discussion can be found at https://github.com/pypa/pip/issues/12330
+DEPRECATION: Loading egg at /usr/local/lib/python3.12/dist-packages/lightning_utilities-0.11.9-py3.12.egg is deprecated. pip 25.1 will enforce this behaviour change. A possible replacement is to use pip for package installation. Discussion can be found at https://github.com/pypa/pip/issues/12330
+DEPRECATION: Loading egg at /usr/local/lib/python3.12/dist-packages/looseversion-1.3.0-py3.12.egg is deprecated. pip 25.1 will enforce this behaviour change. A possible replacement is to use pip for package installation. Discussion can be found at https://github.com/pypa/pip/issues/12330
+DEPRECATION: Loading egg at /usr/local/lib/python3.12/dist-packages/nvfuser-0.2.13a0+0d33366-py3.12-linux-x86_64.egg is deprecated. pip 25.1 will enforce this behaviour change. A possible replacement is to use pip for package installation. Discussion can be found at https://github.com/pypa/pip/issues/12330
+DEPRECATION: Loading egg at /usr/local/lib/python3.12/dist-packages/opt_einsum-3.4.0-py3.12.egg is deprecated. pip 25.1 will enforce this behaviour change. A possible replacement is to use pip for package installation. Discussion can be found at https://github.com/pypa/pip/issues/12330
+DEPRECATION: Loading egg at /usr/local/lib/python3.12/dist-packages/texttable-1.7.0-py3.12.egg is deprecated. pip 25.1 will enforce this behaviour change. A possible replacement is to use pip for package installation. Discussion can be found at https://github.com/pypa/pip/issues/12330
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable.It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+
+[notice] A new release of pip is available: 24.3.1 -> 26.1.2
+[notice] To update, run: python -m pip install --upgrade pip
+=== starting full benchmark (USE_CLUSTER=1, full precision) ===
+============================================================
+  Speculative Decoding — Full Benchmark
+  Draft model:  meta-llama/Llama-3.2-1B
+  Target model: meta-llama/Llama-3.2-3B
+  GPU mode:     False
+  K values:     [1, 2, 4, 6, 8]
+  Domains:      ['prose', 'code', 'math']
+============================================================
+
+Loading tokenizer and models...
+Downloading shards:   0%|          | 0/2 [00:00<?, ?it/s]Downloading shards:  50%|█████     | 1/2 [00:07<00:07,  7.04s/it]Downloading shards: 100%|██████████| 2/2 [00:10<00:00,  4.81s/it]Downloading shards: 100%|██████████| 2/2 [00:10<00:00,  5.14s/it]
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:06<00:06,  6.45s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:08<00:00,  3.83s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:08<00:00,  4.22s/it]
+Models loaded.
+
+============================================================
+Running Baseline Benchmark
+============================================================
+Baseline average: 49.21 tokens/sec
+
+Sweeping K values:   0%|          | 0/5 [00:00<?, ?it/s]Sweeping K values:  20%|██        | 1/5 [00:07<00:31,  7.91s/it]Sweeping K values:  40%|████      | 2/5 [00:15<00:23,  7.98s/it]Sweeping K values:  60%|██████    | 3/5 [00:24<00:16,  8.07s/it]Sweeping K values:  80%|████████  | 4/5 [00:33<00:08,  8.64s/it]Sweeping K values: 100%|██████████| 5/5 [00:44<00:00,  9.26s/it]Sweeping K values: 100%|██████████| 5/5 [00:44<00:00,  8.80s/it]
+
+--- Speculative Decoding K=1 ---
+
+--- Speculative Decoding K=2 ---
+
+--- Speculative Decoding K=4 ---
+
+--- Speculative Decoding K=6 ---
+
+--- Speculative Decoding K=8 ---
+
+============================================================
+K vs Acceptance Rate vs Tokens/sec vs Speedup
+============================================================
+   K   Acc. Rate     Tok/sec     Speedup
+----------------------------------------
+   1      0.8475       57.54      1.1692
+   2      0.7537       56.99      1.1580
+   4      0.7010       56.35      1.1452
+   6      0.5995       50.75      1.0314
+   8      0.5311       46.01      0.9350
+
+Baseline: 49.21 tokens/sec
+
+============================================================
+Domain vs Acceptance Rate vs Speedup
+============================================================
+    Domain   Acc. Rate     Tok/sec     Speedup
+---------------------------------------------
+     prose      0.6540       51.85      1.0536
+      code      0.7723       58.57      1.1903
+      math      0.6333       50.16      1.0194
+
+Results saved to results.json
+
+Generating plots...
+Saved: speedup_vs_k.png
+Saved: acceptance_rate_vs_k.png
+All plots generated successfully.
+
+============================================================
+  Running Latency Breakdown & Token Visualization
+============================================================
+Saved: latency_breakdown.png
+Saved: latency_percentage.png
+Saved: latency_breakdown.json
+Saved: token_trace.html
+
+============================================================
+  Sample Comparison: Baseline vs Speculative (K=4)
+============================================================
+  Baseline:     49.21 tokens/sec
+  Speculative:  56.35 tokens/sec (K=4)
+  Speedup:      1.1452x
+  Accept rate:  0.7010
+
+Done. All results saved and plots generated.
+=== outputs ===
+-rw-r--r-- 1 root nogroup 50120 Jun  1 08:48 acceptance_rate_vs_k.png
+-rw-r--r-- 1 root nogroup   652 Jun  1 08:48 latency_breakdown.json
+-rw-r--r-- 1 root nogroup 63536 Jun  1 08:48 latency_breakdown.png
+-rw-r--r-- 1 root nogroup 52114 Jun  1 08:48 latency_percentage.png
+-rw-r--r-- 1 root nogroup 17804 Jun  1 08:48 results.json
+-rw-r--r-- 1 root nogroup 66295 Jun  1 08:48 speedup_vs_k.png
+-rw-r--r-- 1 root nogroup  9302 Jun  1 08:48 token_trace.html

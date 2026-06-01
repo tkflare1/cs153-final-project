@@ -1,0 +1,37 @@
+[
+  {
+    "K": 1,
+    "draft_time": 3.0282,
+    "verify_time": 4.6257,
+    "accept_time": 3.4764,
+    "acceptance_rate": 0.7
+  },
+  {
+    "K": 2,
+    "draft_time": 5.1348,
+    "verify_time": 4.0555,
+    "accept_time": 3.0644,
+    "acceptance_rate": 0.4902
+  },
+  {
+    "K": 4,
+    "draft_time": 7.3169,
+    "verify_time": 2.9439,
+    "accept_time": 2.2314,
+    "acceptance_rate": 0.4384
+  },
+  {
+    "K": 6,
+    "draft_time": 8.6226,
+    "verify_time": 2.8774,
+    "accept_time": 1.5891,
+    "acceptance_rate": 0.4235
+  },
+  {
+    "K": 8,
+    "draft_time": 10.4885,
+    "verify_time": 1.9028,
+    "accept_time": 1.4483,
+    "acceptance_rate": 0.4105
+  }
+]

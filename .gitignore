@@ -5,3 +5,5 @@ venv/
 prompt.md
 ed_post.md
 .cursor/
+.env
+*.env

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Speculative Decoding Token Trace</title>
+
+    <style>
+        body { font-family: 'Segoe UI', system-ui, sans-serif; max-width: 900px;
+               margin: 40px auto; padding: 0 20px; background: #fafafa; color: #1a1a1a; }
+        h1 { font-size: 22px; border-bottom: 2px solid #e5e5e5; padding-bottom: 10px; }
+        h2 { font-size: 16px; color: #555; margin-top: 30px; }
+        .meta { background: #f0f0f0; padding: 12px 16px; border-radius: 8px;
+                font-size: 14px; margin-bottom: 20px; }
+        .round { background: white; border: 1px solid #e0e0e0; border-radius: 8px;
+                 padding: 14px 18px; margin-bottom: 12px; }
+        .round-header { font-weight: 600; font-size: 14px; color: #444; margin-bottom: 8px; }
+        .token { display: inline-block; padding: 3px 6px; margin: 2px; border-radius: 4px;
+                 font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; }
+        .accepted { background: #dcfce7; border: 1px solid #86efac; color: #166534; }
+        .rejected { background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b;
+                    text-decoration: line-through; }
+        .resampled { background: #fef3c7; border: 1px solid #fcd34d; color: #92400e; }
+        .bonus { background: #dbeafe; border: 1px solid #93c5fd; color: #1e40af; }
+        .prob { font-size: 11px; color: #888; margin-left: 2px; }
+        .legend { display: flex; gap: 16px; margin-bottom: 16px; font-size: 13px; }
+        .legend span { padding: 2px 8px; border-radius: 4px; }
+        .arrow { color: #999; margin: 0 2px; }
+    </style>
+    </head><body>
+<h1>Speculative Decoding: Token-Level Trace</h1>
+<div class="meta">
+    <strong>Prompt:</strong> Once upon a time in a distant kingdom, there lived a<br>
+    <strong>K:</strong> 4 &nbsp;|&nbsp;
+    <strong>Acceptance Rate:</strong> 43.8% &nbsp;|&nbsp;
+    <strong>Rounds:</strong> 19
+</div>
+
+    <div class="legend">
+        <span class="token accepted">Accepted</span>
+        <span class="token rejected">Rejected</span>
+        <span class="token resampled">Resampled</span>
+        <span class="token bonus">Bonus</span>
+    </div>
+    
+<h2>Generation Rounds</h2>
+
+        <div class="round">
+            <div class="round-header">Round 1
+                &mdash; 1/2 accepted</div>
+            <span class="token accepted"> prince<span class="prob"> 1.00</span></span> <span class="token rejected"> who<span class="prob"> 0.52</span></span><span class="arrow">&rarr;</span><span class="token resampled"> from</span> 
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 2
+                &mdash; 0/1 accepted</div>
+            <span class="token rejected"> whom<span class="prob"> 0.15</span></span><span class="arrow">&rarr;</span><span class="token resampled"> the</span> 
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 3
+                &mdash; 0/1 accepted</div>
+            <span class="token rejected"> sword<span class="prob"> 0.15</span></span><span class="arrow">&rarr;</span><span class="token resampled"> line</span> 
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 4
+                &mdash; 4/4 accepted</div>
+            <span class="token accepted"> of<span class="prob"> 0.99</span></span> <span class="token accepted"> the<span class="prob"> 1.00</span></span> <span class="token accepted"> ornament<span class="prob"> 0.47</span></span> <span class="token accepted">ed<span class="prob"> 0.96</span></span> <span class="token bonus"> nom (bonus)</span>
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 5
+                &mdash; 0/1 accepted</div>
+            <span class="token rejected">es<span class="prob"> 0.01</span></span><span class="arrow">&rarr;</span><span class="token resampled">ads</span> 
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 6
+                &mdash; 4/4 accepted</div>
+            <span class="token accepted">.<span class="prob"> 1.00</span></span> <span class="token accepted"> He<span class="prob"> 0.66</span></span> <span class="token accepted"> was<span class="prob"> 1.00</span></span> <span class="token accepted"> a<span class="prob"> 1.00</span></span> <span class="token bonus"> prince (bonus)</span>
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 7
+                &mdash; 4/4 accepted</div>
+            <span class="token accepted">,<span class="prob"> 1.00</span></span> <span class="token accepted"> for<span class="prob"> 0.54</span></span> <span class="token accepted"> he<span class="prob"> 0.84</span></span> <span class="token accepted"> was<span class="prob"> 1.00</span></span> <span class="token bonus"> not (bonus)</span>
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 8
+                &mdash; 2/3 accepted</div>
+            <span class="token accepted"> a<span class="prob"> 0.88</span></span> <span class="token accepted"> mere<span class="prob"> 0.65</span></span> <span class="token rejected"> man<span class="prob"> 0.17</span></span><span class="arrow">&rarr;</span><span class="token resampled"> robber</span> 
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 9
+                &mdash; 2/3 accepted</div>
+            <span class="token accepted"> with<span class="prob"> 0.80</span></span> <span class="token accepted"> only<span class="prob"> 0.82</span></span> <span class="token rejected"> noble<span class="prob"> 0.17</span></span><span class="arrow">&rarr;</span><span class="token resampled"> the</span> 
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 10
+                &mdash; 1/2 accepted</div>
+            <span class="token accepted"> power<span class="prob"> 0.96</span></span> <span class="token rejected"> over<span class="prob"> 0.10</span></span><span class="arrow">&rarr;</span><span class="token resampled"> of</span> 
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 11
+                &mdash; 0/1 accepted</div>
+            <span class="token rejected"> his<span class="prob"> 0.56</span></span><span class="arrow">&rarr;</span><span class="token resampled"> the</span> 
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 12
+                &mdash; 0/1 accepted</div>
+            <span class="token rejected"> law<span class="prob"> 0.05</span></span><span class="arrow">&rarr;</span><span class="token resampled"> bow</span> 
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 13
+                &mdash; 1/2 accepted</div>
+            <span class="token accepted">,<span class="prob"> 1.00</span></span> <span class="token rejected"> neither<span class="prob"> 0.23</span></span><span class="arrow">&rarr;</span><span class="token resampled"> the</span> 
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 14
+                &mdash; 4/4 accepted</div>
+            <span class="token accepted"> tongue<span class="prob"> 0.06</span></span> <span class="token accepted"> and<span class="prob"> 0.93</span></span> <span class="token accepted"> the<span class="prob"> 0.93</span></span> <span class="token accepted"> sword<span class="prob"> 0.81</span></span> <span class="token bonus">, (bonus)</span>
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 15
+                &mdash; 1/2 accepted</div>
+            <span class="token accepted"> but<span class="prob"> 1.00</span></span> <span class="token rejected"> he<span class="prob"> 0.87</span></span><span class="arrow">&rarr;</span><span class="token resampled"> had</span> 
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 16
+                &mdash; 3/4 accepted</div>
+            <span class="token accepted"> inherited<span class="prob"> 1.00</span></span> <span class="token accepted"> from<span class="prob"> 0.68</span></span> <span class="token accepted"> his<span class="prob"> 0.95</span></span> <span class="token rejected"> father<span class="prob"> 0.36</span></span><span class="arrow">&rarr;</span><span class="token resampled"> fore</span> 
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 17
+                &mdash; 0/1 accepted</div>
+            <span class="token rejected">b<span class="prob"> 0.04</span></span><span class="arrow">&rarr;</span><span class="token resampled">f</span> 
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 18
+                &mdash; 4/4 accepted</div>
+            <span class="token accepted">athers<span class="prob"> 1.00</span></span> <span class="token accepted"> the<span class="prob"> 1.00</span></span> <span class="token accepted"> poisoned<span class="prob"> 0.65</span></span> <span class="token accepted"> needle<span class="prob"> 1.00</span></span> <span class="token bonus"> and (bonus)</span>
+        </div>
+        
+        <div class="round">
+            <div class="round-header">Round 19
+                &mdash; 1/1 accepted</div>
+            <span class="token accepted"> the<span class="prob"> 0.95</span></span> <span class="token bonus"> divine (bonus)</span>
+        </div>
+        
+<h2>Full Output</h2>
+<div class="round" style="white-space:pre-wrap; font-family:monospace; font-size:13px;">
+Once upon a time in a distant kingdom, there lived a prince from the line of the ornamented nomads. He was a prince, for he was not a mere robber with only the power of the bow, the tongue and the sword, but had inherited from his forefathers the poisoned needle and the divine</div>
+</body></html>

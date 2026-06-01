@@ -1,0 +1,37 @@
+[
+  {
+    "K": 1,
+    "draft_time": 0.3179,
+    "verify_time": 0.5217,
+    "accept_time": 0.0248,
+    "acceptance_rate": 0.8519
+  },
+  {
+    "K": 2,
+    "draft_time": 0.4678,
+    "verify_time": 0.3858,
+    "accept_time": 0.0209,
+    "acceptance_rate": 0.75
+  },
+  {
+    "K": 4,
+    "draft_time": 0.7475,
+    "verify_time": 0.3088,
+    "accept_time": 0.0188,
+    "acceptance_rate": 0.5312
+  },
+  {
+    "K": 6,
+    "draft_time": 0.769,
+    "verify_time": 0.2315,
+    "accept_time": 0.0159,
+    "acceptance_rate": 0.5758
+  },
+  {
+    "K": 8,
+    "draft_time": 0.9807,
+    "verify_time": 0.232,
+    "accept_time": 0.016,
+    "acceptance_rate": 0.4643
+  }
+]
