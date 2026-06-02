@@ -1,0 +1,94 @@
+{
+  "token_counts": [
+    20,
+    30
+  ],
+  "results": [
+    {
+      "max_new_tokens": 20,
+      "baseline_avg_tokens_per_sec": 22.24,
+      "best_K": 1,
+      "best_speedup": 1.1244,
+      "k_summary": [
+        {
+          "K": 1,
+          "acceptance_rate": 0.7264,
+          "tokens_per_sec": 25.01,
+          "speedup": 1.1244,
+          "avg_elapsed": 0.83
+        },
+        {
+          "K": 2,
+          "acceptance_rate": 0.5744,
+          "tokens_per_sec": 22.36,
+          "speedup": 1.0055,
+          "avg_elapsed": 0.93
+        },
+        {
+          "K": 4,
+          "acceptance_rate": 0.4391,
+          "tokens_per_sec": 15.77,
+          "speedup": 0.7089,
+          "avg_elapsed": 1.36
+        },
+        {
+          "K": 6,
+          "acceptance_rate": 0.3572,
+          "tokens_per_sec": 14.94,
+          "speedup": 0.6716,
+          "avg_elapsed": 1.5
+        },
+        {
+          "K": 8,
+          "acceptance_rate": 0.3321,
+          "tokens_per_sec": 15.21,
+          "speedup": 0.6841,
+          "avg_elapsed": 1.62
+        }
+      ]
+    },
+    {
+      "max_new_tokens": 30,
+      "baseline_avg_tokens_per_sec": 22.39,
+      "best_K": 1,
+      "best_speedup": 1.0904,
+      "k_summary": [
+        {
+          "K": 1,
+          "acceptance_rate": 0.7465,
+          "tokens_per_sec": 24.41,
+          "speedup": 1.0904,
+          "avg_elapsed": 1.24
+        },
+        {
+          "K": 2,
+          "acceptance_rate": 0.6143,
+          "tokens_per_sec": 22.73,
+          "speedup": 1.0152,
+          "avg_elapsed": 1.36
+        },
+        {
+          "K": 4,
+          "acceptance_rate": 0.4573,
+          "tokens_per_sec": 18.53,
+          "speedup": 0.8279,
+          "avg_elapsed": 1.78
+        },
+        {
+          "K": 6,
+          "acceptance_rate": 0.3582,
+          "tokens_per_sec": 15.85,
+          "speedup": 0.7082,
+          "avg_elapsed": 2.06
+        },
+        {
+          "K": 8,
+          "acceptance_rate": 0.3345,
+          "tokens_per_sec": 15.46,
+          "speedup": 0.6906,
+          "avg_elapsed": 2.34
+        }
+      ]
+    }
+  ]
+}

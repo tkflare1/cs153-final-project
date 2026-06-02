@@ -45,7 +45,7 @@ PROMPTS = {
 }
 
 
-def run_baseline_benchmark(model, tokenizer, prompts_dict):
+def run_baseline_benchmark(model, tokenizer, prompts_dict, max_new_tokens=MAX_NEW_TOKENS):
     """Run baseline autoregressive decoding on all prompts and collect metrics."""
     results = []
     for domain, prompts in prompts_dict.items():
@@ -56,7 +56,7 @@ def run_baseline_benchmark(model, tokenizer, prompts_dict):
             input_ids = tokenizer.encode(prompt, return_tensors="pt")
             input_ids = input_ids.to(_model_device(model))
             _, elapsed, tps = baseline_autoregressive(
-                model, tokenizer, input_ids, max_new_tokens=MAX_NEW_TOKENS
+                model, tokenizer, input_ids, max_new_tokens=max_new_tokens
             )
             results.append({
                 "domain": domain,
@@ -67,7 +67,14 @@ def run_baseline_benchmark(model, tokenizer, prompts_dict):
     return results
 
 
-def run_speculative_benchmark(draft_model, target_model, tokenizer, prompts_dict, K):
+def run_speculative_benchmark(
+    draft_model,
+    target_model,
+    tokenizer,
+    prompts_dict,
+    K,
+    max_new_tokens=MAX_NEW_TOKENS,
+):
     """Run speculative decoding for a given K on all prompts and collect metrics."""
     results = []
     for domain, prompts in prompts_dict.items():
@@ -81,7 +88,7 @@ def run_speculative_benchmark(draft_model, target_model, tokenizer, prompts_dict
             start_time = time.perf_counter()
             generated, accepted, proposed = speculative_decode(
                 draft_model, target_model, tokenizer, input_ids,
-                K=K, max_new_tokens=MAX_NEW_TOKENS,
+                K=K, max_new_tokens=max_new_tokens,
             )
             elapsed = time.perf_counter() - start_time
 
@@ -103,7 +110,14 @@ def run_speculative_benchmark(draft_model, target_model, tokenizer, prompts_dict
     return results
 
 
-def run_full_benchmark(draft_model, target_model, tokenizer, prompts_dict=None, k_values=None):
+def run_full_benchmark(
+    draft_model,
+    target_model,
+    tokenizer,
+    prompts_dict=None,
+    k_values=None,
+    max_new_tokens=MAX_NEW_TOKENS,
+):
     """
     Run the complete benchmark sweep.
 
@@ -121,7 +135,9 @@ def run_full_benchmark(draft_model, target_model, tokenizer, prompts_dict=None, 
     print("=" * 60)
     print("Running Baseline Benchmark")
     print("=" * 60)
-    baseline_results = run_baseline_benchmark(target_model, tokenizer, prompts_dict)
+    baseline_results = run_baseline_benchmark(
+        target_model, tokenizer, prompts_dict, max_new_tokens=max_new_tokens
+    )
     baseline_avg_tps = np.mean([r["tokens_per_sec"] for r in baseline_results])
     print(f"Baseline average: {baseline_avg_tps:.2f} tokens/sec\n")
 
@@ -129,7 +145,8 @@ def run_full_benchmark(draft_model, target_model, tokenizer, prompts_dict=None, 
     for K in tqdm(k_values, desc="Sweeping K values"):
         print(f"\n--- Speculative Decoding K={K} ---")
         spec_results = run_speculative_benchmark(
-            draft_model, target_model, tokenizer, prompts_dict, K
+            draft_model, target_model, tokenizer, prompts_dict, K,
+            max_new_tokens=max_new_tokens
         )
         all_spec_results.extend(spec_results)
 
@@ -169,6 +186,74 @@ def run_full_benchmark(draft_model, target_model, tokenizer, prompts_dict=None, 
         "k_summary": k_summary,
         "domain_summary": domain_summary,
     }
+
+    return results
+
+
+def run_adaptive_speculative_benchmark(
+    draft_model,
+    target_model,
+    tokenizer,
+    prompts_dict,
+    k_min=1,
+    k_max=8,
+    k_init=2,
+    hi=0.80,
+    lo=0.60,
+    max_new_tokens=MAX_NEW_TOKENS,
+):
+    """
+    Run speculative decoding with a simple adaptive-K policy.
+
+    Policy:
+      - Start at k_init.
+      - If per-prompt acceptance_rate > hi, increase K by 1.
+      - If per-prompt acceptance_rate < lo, decrease K by 1.
+      - Clamp K to [k_min, k_max].
+    """
+    results = []
+    k_cur = k_init
+    ordered_prompts = []
+    for domain, prompts in prompts_dict.items():
+        for prompt in prompts:
+            ordered_prompts.append((domain, prompt))
+
+    for domain, prompt in ordered_prompts:
+        torch.manual_seed(SEED)
+        np.random.seed(SEED)
+        input_ids = tokenizer.encode(prompt, return_tensors="pt")
+        input_ids = input_ids.to(_model_device(draft_model))
+
+        start_time = time.perf_counter()
+        generated, accepted, proposed = speculative_decode(
+            draft_model,
+            target_model,
+            tokenizer,
+            input_ids,
+            K=k_cur,
+            max_new_tokens=max_new_tokens,
+        )
+        elapsed = time.perf_counter() - start_time
+        num_new = generated.shape[1] - input_ids.shape[1]
+        tps = num_new / elapsed if elapsed > 0 else 0.0
+        acc_rate = accepted / proposed if proposed > 0 else 0.0
+
+        results.append({
+            "domain": domain,
+            "prompt": prompt[:50],
+            "K_used": k_cur,
+            "tokens_per_sec": tps,
+            "elapsed": elapsed,
+            "acceptance_rate": acc_rate,
+            "tokens_generated": num_new,
+            "tokens_accepted": accepted,
+            "tokens_proposed": proposed,
+        })
+
+        if acc_rate > hi:
+            k_cur = min(k_max, k_cur + 1)
+        elif acc_rate < lo:
+            k_cur = max(k_min, k_cur - 1)
 
     return results
 
