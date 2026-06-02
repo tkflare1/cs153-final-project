@@ -14,6 +14,16 @@ Speculative decoding accelerates LLM inference by using a small draft model to p
 
 4. **How does the draft to target size ratio affect speedup?** I test multiple draft model sizes against the same target to find the ratio where speculative decoding stops being worth it.
 
+## How the algorithm works
+
+Each speculative round:
+1. **Draft**: the small model generates K candidate tokens autoregressively, recording its probability at each step.
+2. **Verify**: all K candidates go through the target model in a single forward pass, yielding target probabilities for every position.
+3. **Accept/reject**: for each candidate left to right, accept with probability `min(1, p_target / p_draft)`; on the first rejection, resample that position from the residual `max(0, p_target − p_draft)` and discard the rest.
+4. **Bonus token**: if all K are accepted, sample one extra token from the target distribution the verification pass already produced.
+
+Residual resampling makes the procedure **provably lossless** — the output distribution is identical to sampling directly from the target model. Unless noted, all runs use temperature 1.0, a fixed seed (42), and `max_new_tokens=50`, over 9 prompts spanning prose, code, and math.
+
 ## Results (Llama 3.2 1B / 3B, 4-bit, T4 GPU)
 
 ### K-value Sweep
@@ -163,7 +173,6 @@ cluster/                     SLURM sbatch scripts for the H100 cluster
   kv.sbatch                    KV-cache comparison
   adaptive_long.sbatch         Long-context + adaptive-K experiments
 requirements.txt             Dependencies
-writeup.md                   Full analysis and writeup
 colab_results/               Results and plots from the 4-bit Colab T4 run
 h100_results/                Results and plots from the full-precision H100 run
 ```
@@ -196,6 +205,27 @@ sbatch cluster/adaptive_long.sbatch  # long-context + adaptive-K
 override the pair (the sweep uses Qwen2.5). The container workflow pins
 `transformers==4.46.3` / `accelerate==1.1.1` against the NGC PyTorch image and
 reads the HF token from a file outside the repo.
+
+## Analysis
+
+**Why acceptance falls as K grows.** Later tokens in a K-block are conditioned on earlier draft tokens that may already diverge from the target, so per-token agreement drops monotonically (75% → 43% on the T4 from K=1 to K=8).
+
+**Why speedup peaks then reverses.** Speedup balances fewer target calls (benefit) against more draft passes and more wasted, rejected tokens (cost). Because the 1B draft is only ~3x cheaper than the 3B target, draft cost catches up quickly — the latency breakdown shows drafting growing from 27% of wall-clock time at K=1 to 76% at K=8, with the crossover landing exactly where speedup peaks.
+
+**Why code wins.** Structured syntax (indentation, brackets, common idioms) is predictable enough that the 1B draft matches the 3B target far more often than on open-ended prose, so code sees the highest acceptance and speedup in both the T4 and H100 regimes.
+
+**Why the optimal K moves.** The best K is not intrinsic to the model pair — it depends on hardware, precision, and generation length. Cheap target passes (full-precision H100, short sequences) favor K=1; slower/quantized targets (4-bit T4) and longer generations (200 tokens) push the optimum back to K=2. This hardware/precision dependence is the practical guidance the original papers leave open.
+
+## Limitations & Future Work
+
+- **Latency-bound size sweep.** The draft-size sweep ran at batch 1 on a fast GPU, where small-model latency is overhead- rather than FLOP-bound; with a very large target or large batches, a tiny draft could win instead.
+- **Adaptive-K is basic.** The online controller beat baseline (+8% at 200 tokens) but not the best fixed K=2 (1.50x). Smoother acceptance estimates, per-domain K, or hardware-aware caps are natural next steps.
+- **Single-sequence only.** Continuous batching in real serving introduces additional trade-offs not measured here.
+- **Tree-structured speculation** (Medusa, SpecInfer) — verifying multiple draft paths per target pass — is a promising extension not implemented.
+
+## AI Usage
+
+This project was developed with AI assistance (Cursor / Claude). AI tools helped scaffold and refactor code (the shared `config.py`/`models.py` loading layer, the SLURM `cluster/*.sbatch` scripts, and plotting/visualization helpers), debug issues (KV-cache rollback desync, the Qwen2.5 logit-width mismatch, container/version pinning on the cluster), and draft this documentation. All experiments, the design of the empirical study (research questions, benchmark setup, analysis), and verification of results were directed by me; every reported number comes from runs I executed on Colab (T4) and the Stanford H100 cluster.
 
 ## References
 
