@@ -193,8 +193,9 @@ sbatch cluster/kv.sbatch       # KV-cache study   -> kv_results.json
 sbatch cluster/adaptive_long.sbatch  # long-context + adaptive-K
 ```
 `USE_CLUSTER=1` selects full-precision Llama 3.2 1B/3B; `DRAFT_MODEL`/`TARGET_MODEL`
-override the pair (the sweep uses Qwen2.5). See `CLAUDE.md` for the verified
-container workflow (pinned `transformers==4.46.3`, HF token handling, etc.).
+override the pair (the sweep uses Qwen2.5). The container workflow pins
+`transformers==4.46.3` / `accelerate==1.1.1` against the NGC PyTorch image and
+reads the HF token from a file outside the repo.
 
 ## References
 

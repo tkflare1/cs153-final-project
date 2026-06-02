@@ -7,3 +7,14 @@ ed_post.md
 .cursor/
 .env
 *.env
+
+# local-only notes with cluster/internal info — never commit
+local_notes/
+
+# root-level generated outputs (canonical copies live in colab_results/ and h100_results/)
+/*.png
+/token_trace.html
+/results.json
+/latency_breakdown.json
+/adaptive_k_results.json
+/long_context_results.json
