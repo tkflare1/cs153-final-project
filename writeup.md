@@ -174,6 +174,28 @@ To find the draft-to-target size ratio where speculation stops paying off, I swe
 
 The result is counter-intuitive: **the largest draft wins**, not the smallest. The naive expectation is that a tiny draft is "nearly free" and should maximize speedup, but only the 3B draft beats baseline. Two effects combine: (1) the 3B draft's acceptance rate is far higher (85% vs 64%), and (2) at batch size 1 on an H100, per-token latency is dominated by fixed kernel-launch and memory overhead rather than FLOPs, so a 0.5B model is *not* meaningfully cheaper per token than a 3B one. The cheap draft therefore saves almost nothing while accepting much less. The optimal ratio is regime-dependent: in a FLOP-bound setting (huge target, large batch) the tiny draft would win, but in this latency-bound batch-1 setting the larger, more accurate draft is better.
 
+### 4.9 Extension: Long-Context Benchmark
+
+The standard benchmark uses `max_new_tokens=50`. I re-ran the full K sweep at **50 and 200** tokens on the H100 (`adaptive_long_experiments.py`) to test whether speculative gains grow with generation length.
+
+| max_new_tokens | Baseline (tok/s) | Best K | Best speedup |
+|----------------|------------------|--------|--------------|
+| 50 | 48.8 | 1 | 1.19x |
+| 200 | 51.3 | 2 | **1.50x** |
+
+At 200 tokens, even K=1 reaches **1.37x**, and K=2 peaks at **1.50x** (77.0 tok/s). This reconciles with the KV-cache finding: when the sequence is longer, amortizing target verification across more accepted tokens pays off more, and the optimal fixed K moves back toward 2 — closer to the T4 regime than the short 50-token H100 run where K=1 won.
+
+### 4.10 Extension: Adaptive-K Policy
+
+Instead of a fixed K, I implemented a simple online controller (`run_adaptive_speculative_benchmark` in `benchmark.py`): start at K=2; after each prompt, if acceptance > 0.80 increase K by 1, if < 0.60 decrease by 1; clamp to [1, 8]. Evaluated at `max_new_tokens=200` on the H100.
+
+| Policy | Avg tok/s | Speedup vs baseline |
+|--------|-----------|---------------------|
+| Baseline | 72.3 | 1.00x |
+| Adaptive-K | 77.8 | 1.08x |
+
+The K trace was `[2, 2, 2, 2, 2, 3, 4, 4, 4]` — the controller correctly ramped speculation on prompts where the draft stayed aligned with the target. Adaptive-K beat baseline but did not match the best **fixed** K=2 at 200 tokens (1.50x). The gap suggests room for smoother control (e.g., exponential moving average of acceptance, per-domain K, or caps tied to draft/target latency ratio).
+
 ## 5. Analysis
 
 ### 5.1 Why Does Acceptance Rate Decrease with K?
@@ -245,7 +267,7 @@ This breakdown is not present in the original Chen et al. paper, which analyzes 
 
 Two items originally listed as future work were implemented and are reported above: **KV-cache integration** (Section 4.7, verified lossless) and the **draft model size sweep** (Section 4.8). The draft-size sweep also partially addresses the "larger model gaps" question — though it revealed that at batch-1 on a fast GPU the relationship is dominated by latency overhead rather than the FLOP ratio. Remaining directions:
 
-1. **Adaptive K**: Rather than a fixed K, one could dynamically adjust the speculation length based on the running acceptance rate — speculate more aggressively when the draft model is performing well and pull back when rejections are frequent. The cross-regime result (optimal K=1 on H100 vs K=2 on T4) suggests this should also adapt to hardware.
+1. **Stronger adaptive K**: I implemented a basic adaptive-K policy (Section 4.10); it helped (+8% over baseline at 200 tokens) but did not beat the best fixed K=2. Next steps: smoother acceptance estimates, per-domain K, or hardware-aware caps. The cross-regime result (optimal K=1 on short H100 runs vs K=2 on T4 and long H100 runs) confirms K should adapt to both hardware and generation length.
 
 2. **Much larger size gaps in a FLOP-bound setting**: The size sweep here was latency-bound at batch 1. With a very large target (e.g., 70B) or large batches, draft FLOPs would matter more and a tiny draft could win — the opposite of what was observed here.
 
@@ -266,6 +288,7 @@ Beyond reproducing the core algorithm, this project contributes:
 - **A cross-regime study** (4-bit T4 vs full-precision H100) demonstrating that the optimal speculation length and achievable speedup depend on hardware and precision.
 - **A lossless KV-cache implementation** with non-trivial dual-cache rollback on rejection, verified token-for-token against the non-cached decoders.
 - **A draft-size sweep** showing the counter-intuitive result that at batch-1 on a fast GPU the *larger*, higher-acceptance draft maximizes speedup, because small-model latency is overhead-bound rather than FLOP-bound.
+- **Long-context and adaptive-K studies** showing that at 200 tokens fixed K=2 reaches **1.50x** on the H100, while a simple adaptive controller modestly improves over baseline but does not yet match the best fixed policy.
 
 The results confirm the theoretical prediction — speculative decoding is a genuine free lunch when the draft-to-target cost ratio is favorable — but also sharpen it: whether that ratio is favorable depends as much on the hardware, precision, and batch regime as on the model sizes themselves.
 

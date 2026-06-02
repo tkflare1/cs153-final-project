@@ -122,6 +122,24 @@ Instrumented the speculative decode loop to separately measure draft forward pas
 ### Token-Level Visualization
 Built an interactive HTML visualization that shows each speculative round step by step: accepted tokens (green), rejected tokens (red with strikethrough), resampled tokens (yellow), and bonus tokens (blue). Each token displays the probability ratio used for the accept/reject decision. Makes the algorithm tangible beyond aggregate metrics.
 
+### Long-Context Benchmark
+Re-ran the full K sweep at `max_new_tokens` = 50 and 200 on the H100 (`adaptive_long_experiments.py`). At 50 tokens the best fixed K is still **K=1 (1.19x)**; at **200 tokens** the best fixed K shifts to **K=2 (1.50x, 77.0 tok/s)** — speculative decoding pays off more when there is more sequence to amortize verification across. Plot: `h100_results/long_context_speedup.png`.
+
+| max_new_tokens | Baseline (tok/s) | Best K | Best speedup |
+|----------------|------------------|--------|--------------|
+| 50 | 48.8 | 1 | 1.19x |
+| 200 | 51.3 | 2 | **1.50x** |
+
+### Adaptive-K Policy
+Implemented a simple controller: start at K=2; if acceptance > 80%, increase K by 1; if < 60%, decrease K; clamp to [1, 8]. Evaluated at `max_new_tokens=200` on the H100.
+
+| Policy | Avg tok/s | Speedup vs baseline |
+|--------|-----------|---------------------|
+| Baseline | 72.3 | 1.00x |
+| Adaptive-K | 77.8 | **1.08x** |
+
+The K trace ramped from 2 on early prompts to 4 on later ones (`[2,2,2,2,2,3,4,4,4]`). Adaptive-K is modestly above baseline but did not beat the best **fixed** K=2 at 200 tokens (1.50x); a tighter policy or per-domain K would be the next step. Outputs: `h100_results/adaptive_k_results.json`, `adaptive_k_usage.png`.
+
 ## Project Structure
 
 ```
@@ -133,6 +151,7 @@ baseline.py                  Manual autoregressive decoding loop
 kv_cache.py                  KV-cached baseline + speculative decoders (with rollback)
 kv_compare.py                KV losslessness check + cached-vs-uncached speedup
 draft_sweep.py               Draft model size sweep (Qwen2.5 family)
+adaptive_long_experiments.py Long-context sweep + adaptive-K runs
 benchmark.py                 Benchmarking harness, K sweeps, domain sweeps
 plot.py                      Generates speedup and acceptance rate plots
 visualize.py                 Latency breakdown plots and token trace HTML
@@ -142,6 +161,7 @@ cluster/                     SLURM sbatch scripts for the H100 cluster
   bench.sbatch                 Full benchmark (main.py)
   sweep.sbatch                 Draft-size sweep
   kv.sbatch                    KV-cache comparison
+  adaptive_long.sbatch         Long-context + adaptive-K experiments
 requirements.txt             Dependencies
 writeup.md                   Full analysis and writeup
 colab_results/               Results and plots from the 4-bit Colab T4 run
@@ -170,6 +190,7 @@ same code via env vars (no source edits). From the login pod:
 sbatch cluster/bench.sbatch    # full benchmark  -> results.json + plots
 sbatch cluster/sweep.sbatch    # draft-size sweep -> draft_sweep.json + png
 sbatch cluster/kv.sbatch       # KV-cache study   -> kv_results.json
+sbatch cluster/adaptive_long.sbatch  # long-context + adaptive-K
 ```
 `USE_CLUSTER=1` selects full-precision Llama 3.2 1B/3B; `DRAFT_MODEL`/`TARGET_MODEL`
 override the pair (the sweep uses Qwen2.5). See `CLAUDE.md` for the verified

@@ -1,0 +1,126 @@
+{
+  "policy": {
+    "k_min": 1,
+    "k_max": 8,
+    "k_init": 2,
+    "hi": 0.8,
+    "lo": 0.6,
+    "max_new_tokens": 200
+  },
+  "baseline_avg_tokens_per_sec": 72.3319,
+  "adaptive_avg_tokens_per_sec": 77.7599,
+  "adaptive_speedup_vs_baseline": 1.075,
+  "adaptive_avg_acceptance_rate": 0.7192,
+  "k_trace": [
+    2,
+    2,
+    2,
+    2,
+    2,
+    3,
+    4,
+    4,
+    4
+  ],
+  "adaptive_rows": [
+    {
+      "domain": "prose",
+      "prompt": "Once upon a time in a distant kingdom, there lived",
+      "K_used": 2,
+      "tokens_per_sec": 74.66491830363877,
+      "elapsed": 2.692027321085334,
+      "acceptance_rate": 0.6863905325443787,
+      "tokens_generated": 201,
+      "tokens_accepted": 116,
+      "tokens_proposed": 169
+    },
+    {
+      "domain": "prose",
+      "prompt": "The sun set over the ocean, painting the sky in sh",
+      "K_used": 2,
+      "tokens_per_sec": 74.88322913024693,
+      "elapsed": 2.6708249941002578,
+      "acceptance_rate": 0.6764705882352942,
+      "tokens_generated": 200,
+      "tokens_accepted": 115,
+      "tokens_proposed": 170
+    },
+    {
+      "domain": "prose",
+      "prompt": "She opened the old leather journal and began to re",
+      "K_used": 2,
+      "tokens_per_sec": 74.01486082444926,
+      "elapsed": 2.7156708498951048,
+      "acceptance_rate": 0.672514619883041,
+      "tokens_generated": 201,
+      "tokens_accepted": 115,
+      "tokens_proposed": 171
+    },
+    {
+      "domain": "code",
+      "prompt": "def fibonacci(n):\n    \"\"\"Return the nth Fibonacci ",
+      "K_used": 2,
+      "tokens_per_sec": 73.04756686645163,
+      "elapsed": 2.751631691819057,
+      "acceptance_rate": 0.6589595375722543,
+      "tokens_generated": 201,
+      "tokens_accepted": 114,
+      "tokens_proposed": 173
+    },
+    {
+      "domain": "code",
+      "prompt": "class LinkedList:\n    def __init__(self):\n",
+      "K_used": 2,
+      "tokens_per_sec": 84.66535600558608,
+      "elapsed": 2.3740524989552796,
+      "acceptance_rate": 0.8639455782312925,
+      "tokens_generated": 201,
+      "tokens_accepted": 127,
+      "tokens_proposed": 147
+    },
+    {
+      "domain": "code",
+      "prompt": "import numpy as np\n\ndef matrix_multiply(A, B):\n",
+      "K_used": 3,
+      "tokens_per_sec": 84.1887102802003,
+      "elapsed": 2.387493517016992,
+      "acceptance_rate": 0.8022598870056498,
+      "tokens_generated": 201,
+      "tokens_accepted": 142,
+      "tokens_proposed": 177
+    },
+    {
+      "domain": "math",
+      "prompt": "To prove that the square root of 2 is irrational, ",
+      "K_used": 4,
+      "tokens_per_sec": 78.09579817508506,
+      "elapsed": 2.5609572432003915,
+      "acceptance_rate": 0.7,
+      "tokens_generated": 200,
+      "tokens_accepted": 147,
+      "tokens_proposed": 210
+    },
+    {
+      "domain": "math",
+      "prompt": "The derivative of f(x) = x^3 + 2x^2 - 5x + 1 is",
+      "K_used": 4,
+      "tokens_per_sec": 86.84582350481723,
+      "elapsed": 2.3144463589414954,
+      "acceptance_rate": 0.7875647668393783,
+      "tokens_generated": 201,
+      "tokens_accepted": 152,
+      "tokens_proposed": 193
+    },
+    {
+      "domain": "math",
+      "prompt": "Using the binomial theorem, expand (x + y)^4 to ge",
+      "K_used": 4,
+      "tokens_per_sec": 69.43273621245883,
+      "elapsed": 2.89488807390444,
+      "acceptance_rate": 0.6244541484716157,
+      "tokens_generated": 201,
+      "tokens_accepted": 143,
+      "tokens_proposed": 229
+    }
+  ]
+}
